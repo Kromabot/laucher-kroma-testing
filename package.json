@@ -1,0 +1,22 @@
+{
+  "name": "launcher-bot-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "apps/bot"
+  ],
+  "scripts": {
+    "local:start": "node scripts/local-services.mjs start",
+    "local:stop": "node scripts/local-services.mjs stop",
+    "local:restart": "node scripts/local-services.mjs restart",
+    "local:status": "node scripts/local-services.mjs status",
+    "local:update": "node scripts/local-services.mjs update",
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:bot": "npm --workspace apps/bot run dev",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces"
+  }
+}

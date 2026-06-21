@@ -1,0 +1,82 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: launcher_bot
+      POSTGRES_USER: launcherbot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace_password}
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U launcherbot -d launcher_bot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    env_file:
+      - path: .env.test.example
+        required: true
+      - path: .env.test
+        required: false
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      API_BIND_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://launcherbot:${POSTGRES_PASSWORD:-replace_password}@postgres:5432/launcher_bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3002:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bot:
+    build:
+      context: .
+      target: bot
+    restart: unless-stopped
+    env_file:
+      - path: .env.test.example
+        required: true
+      - path: .env.test
+        required: false
+    environment:
+      NODE_ENV: development
+      API_BASE_URL: http://api:3001/api
+      DATABASE_URL: postgresql://launcherbot:${POSTGRES_PASSWORD:-replace_password}@postgres:5432/launcher_bot
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      target: web
+      args:
+        VITE_API_URL: /api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres-test-data:
